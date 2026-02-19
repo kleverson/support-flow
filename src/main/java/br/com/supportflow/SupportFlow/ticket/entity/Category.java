@@ -1,5 +1,6 @@
 package br.com.supportflow.SupportFlow.ticket.entity;
 
+import br.com.supportflow.SupportFlow.client.entity.Client;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -10,7 +11,9 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name="categories")
+@Table(name = "categories", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_category_title_client", columnNames = {"title", "client_id"})
+})
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -18,6 +21,13 @@ public class Category {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String title;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
+    private Client client;
+
+    @Column(name = "is_global", nullable = false)
+    private boolean global;
 
     @OneToMany(mappedBy = "category")
     private List<Ticket> tickets = new ArrayList<>();
@@ -44,6 +54,22 @@ public class Category {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
+    public void setClient(Client client) {
+        this.client = client;
+    }
+
+    public boolean isGlobal() {
+        return global;
+    }
+
+    public void setGlobal(boolean global) {
+        this.global = global;
     }
 
     public List<Ticket> getTickets() {
