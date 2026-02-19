@@ -6,6 +6,7 @@ import br.com.supportflow.SupportFlow.common.dto.GenericResponse;
 import br.com.supportflow.SupportFlow.common.exception.BusinessException;
 import br.com.supportflow.SupportFlow.common.security.ClientAccessGuard;
 import br.com.supportflow.SupportFlow.common.security.ClientContextResolver;
+import br.com.supportflow.SupportFlow.common.util.Base64Utils;
 import br.com.supportflow.SupportFlow.common.util.StorageFile;
 import br.com.supportflow.SupportFlow.ticket.dto.TicketAssign;
 import br.com.supportflow.SupportFlow.ticket.dto.TicketPostBody;
@@ -194,7 +195,7 @@ public class TicketService {
         }
 
         safeFiles.forEach(item -> {
-            String contentType = resolveContentType(item);
+            String contentType = Base64Utils.resolveContentType(item);
             long sizeBytes = storageFile.decodeBase64(item).length;
             String file = storageFile.uploadFile(item, "tickets/" + ticket.getId() + "/", contentType);
 
@@ -204,7 +205,7 @@ public class TicketService {
             attachment.setStoragePath(file);
             attachment.setContentType(contentType);
             attachment.setSizeBytes(sizeBytes);
-            attachment.setFileName(resolveFileName(file));
+            attachment.setFileName(Base64Utils.resolveFileName(file));
             attachmentRepository.save(attachment);
         });
     }
@@ -236,28 +237,4 @@ public class TicketService {
         }
     }
 
-    private String resolveContentType(String base64) {
-        if (base64 == null || base64.isBlank()) {
-            throw new BusinessException("INVALID_FILE", "File payload is empty", HttpStatus.BAD_REQUEST);
-        }
-        if (base64.startsWith("data:")) {
-            int start = "data:".length();
-            int end = base64.indexOf(';');
-            if (end > start) {
-                return base64.substring(start, end);
-            }
-        }
-        return "application/octet-stream";
-    }
-
-    private String resolveFileName(String storagePath) {
-        if (storagePath == null || storagePath.isBlank()) {
-            return UUID.randomUUID().toString();
-        }
-        int idx = storagePath.lastIndexOf('/');
-        if (idx < 0 || idx == storagePath.length() - 1) {
-            return UUID.randomUUID().toString();
-        }
-        return storagePath.substring(idx + 1);
-    }
 }

@@ -5,6 +5,8 @@ import br.com.supportflow.SupportFlow.client.entity.Client;
 import br.com.supportflow.SupportFlow.client.repository.ClientRepository;
 import br.com.supportflow.SupportFlow.common.dto.GenericResponse;
 import br.com.supportflow.SupportFlow.common.exception.BusinessException;
+import br.com.supportflow.SupportFlow.common.util.Base64Utils;
+import br.com.supportflow.SupportFlow.common.util.StorageFile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,10 +20,15 @@ import java.util.UUID;
 @Service
 public class ClientService {
     private final ClientRepository clientRepository;
+    private final StorageFile storageFile;
 
-    public ClientService(ClientRepository clientRepository) {
+
+    public ClientService(ClientRepository clientRepository, StorageFile storageFile) {
         this.clientRepository = clientRepository;
+        this.storageFile = storageFile;
     }
+
+
 
     public Client get(UUID id) {
         return clientRepository.findById(id).orElseThrow(() -> new BusinessException("NOT_FOUND", "Client not found!", HttpStatus.NOT_FOUND));
@@ -45,6 +52,14 @@ public class ClientService {
     public GenericResponse create(ClientPostBody clientPostBody) {
         try {
             var client = new Client();
+
+            if(!clientPostBody.brand().isEmpty()){
+                String contentType = Base64Utils.resolveContentType(clientPostBody.brand());
+                String file = storageFile.uploadFile(clientPostBody.brand(), "clients/brands", contentType);
+
+                client.setBrand(file);
+            }
+
             client.setName(clientPostBody.name());
             client.setEmail(clientPostBody.email());
             client.setPhone(clientPostBody.phone());

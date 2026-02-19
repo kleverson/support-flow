@@ -14,11 +14,17 @@ public class Client {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(nullable = true, columnDefinition = "TEXT")
+    private String brand;
+
     @Column(nullable = false, length = 120)
     private String name;
 
     @Column(nullable = true, columnDefinition = "TEXT")
     private String description;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String domain;
 
     @Column(nullable = true, columnDefinition = "TEXT")
     private String phone;
@@ -38,13 +44,20 @@ public class Client {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-
     public UUID getId() {
         return id;
     }
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
     }
 
     public String getName() {
@@ -61,6 +74,14 @@ public class Client {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getDomain() {
+        return domain;
+    }
+
+    public void setDomain(String domain) {
+        this.domain = domain;
     }
 
     public String getPhone() {
