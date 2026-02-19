@@ -3,6 +3,7 @@ package br.com.supportflow.SupportFlow.user.controller;
 import br.com.supportflow.SupportFlow.common.dto.GenericResponse;
 import br.com.supportflow.SupportFlow.user.dto.UserEnable;
 import br.com.supportflow.SupportFlow.user.dto.UserRegister;
+import br.com.supportflow.SupportFlow.user.entity.User;
 import br.com.supportflow.SupportFlow.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -34,6 +35,16 @@ public class UserController {
     @PutMapping("/enable")
     public ResponseEntity<GenericResponse> enable(@Valid @RequestBody UserEnable userEnable) {
         return ResponseEntity.ok(userService.userEnable(userEnable));
+    }
+
+    @GetMapping
+    @Operation(summary = "Get all users", description = "Returns a list of all users")
+    public ResponseEntity<?> getAll(
+            @RequestParam(value = "term", defaultValue = "") String term,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(userService.getAll(term, page, size));
     }
 
 }

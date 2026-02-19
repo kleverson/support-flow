@@ -1,6 +1,5 @@
 package br.com.supportflow.SupportFlow.ticket.dto;
 
-import br.com.supportflow.SupportFlow.ticket.entity.TicketPriority;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.Optional;

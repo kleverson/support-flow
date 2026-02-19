@@ -30,7 +30,7 @@ build/
 !**/src/test/**/build/
 
 application.yaml
-src/main/resources/application.yaml
+src/main/resources/application-dev.yaml
 
 ### VS Code ###
 .vscode/
