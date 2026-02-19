@@ -1,13 +1,18 @@
 package br.com.supportflow.SupportFlow.user.service;
 
+import br.com.supportflow.SupportFlow.client.repository.ClientRepository;
 import br.com.supportflow.SupportFlow.common.dto.GenericResponse;
 import br.com.supportflow.SupportFlow.common.exception.BusinessException;
 import br.com.supportflow.SupportFlow.common.util.TokenGenerator;
+import br.com.supportflow.SupportFlow.user.dto.UserClientAccessAssign;
+import br.com.supportflow.SupportFlow.user.dto.UserClientAccessResponse;
 import br.com.supportflow.SupportFlow.user.dto.UserEnable;
 import br.com.supportflow.SupportFlow.user.dto.UserRegister;
 import br.com.supportflow.SupportFlow.user.entity.Role;
 import br.com.supportflow.SupportFlow.user.entity.User;
+import br.com.supportflow.SupportFlow.user.entity.UserClientAccess;
 import br.com.supportflow.SupportFlow.user.repository.UserRepository;
+import br.com.supportflow.SupportFlow.user.repository.UserClientAccessRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,14 +21,26 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.UUID;
+
 @Service
 public class UserService {
     private final UserRepository _userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClientRepository clientRepository;
+    private final UserClientAccessRepository userClientAccessRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            ClientRepository clientRepository,
+            UserClientAccessRepository userClientAccessRepository
+    ) {
         _userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.clientRepository = clientRepository;
+        this.userClientAccessRepository = userClientAccessRepository;
     }
 
     public Page<User> getAll(String term, int page, int size) {
@@ -86,6 +103,57 @@ public class UserService {
             System.out.println(ex.getMessage());
             throw new BusinessException("ERROR_ENABLE_USER", ex.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    public UserClientAccessResponse assignClient(UUID userId, UUID clientId, UserClientAccessAssign assign) {
+        var user = _userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
+
+        var client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new BusinessException("CLIENT_NOT_FOUND", "Client not found", HttpStatus.NOT_FOUND));
+
+        var access = userClientAccessRepository.findByUserIdAndClientId(userId, clientId)
+                .orElseGet(UserClientAccess::new);
+
+        access.setUser(user);
+        access.setClient(client);
+        access.setRoleInClient(assign.role());
+        access.setActive(true);
+
+        return UserClientAccessResponse.from(userClientAccessRepository.save(access));
+    }
+
+    public GenericResponse removeClient(UUID userId, UUID clientId) {
+        var access = userClientAccessRepository.findByUserIdAndClientId(userId, clientId)
+                .orElseThrow(() -> new BusinessException(
+                        "USER_CLIENT_LINK_NOT_FOUND",
+                        "User-client link not found",
+                        HttpStatus.NOT_FOUND
+                ));
+
+        access.setActive(false);
+        userClientAccessRepository.save(access);
+        return new GenericResponse("User access removed from client");
+    }
+
+    public List<UserClientAccessResponse> listClientsByUser(UUID userId) {
+        _userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
+
+        return userClientAccessRepository.findByUserIdAndActiveTrue(userId)
+                .stream()
+                .map(UserClientAccessResponse::from)
+                .toList();
+    }
+
+    public List<UserClientAccessResponse> listUsersByClient(UUID clientId) {
+        clientRepository.findById(clientId)
+                .orElseThrow(() -> new BusinessException("CLIENT_NOT_FOUND", "Client not found", HttpStatus.NOT_FOUND));
+
+        return userClientAccessRepository.findByClientIdAndActiveTrue(clientId)
+                .stream()
+                .map(UserClientAccessResponse::from)
+                .toList();
     }
 
 }

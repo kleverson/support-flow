@@ -13,9 +13,10 @@ public class DataInitializer {
         return args -> {
             String defaultCategory = "UNCATEGORIZED";
 
-            if(!categoryRepository.existsByTitle(defaultCategory)){
+            if(!categoryRepository.existsByTitleAndGlobalTrue(defaultCategory)){
                 Category category = new Category();
                 category.setTitle(defaultCategory);
+                category.setGlobal(true);
                 categoryRepository.save(category);
                 System.out.println("Default Category CREATED");
             }else{

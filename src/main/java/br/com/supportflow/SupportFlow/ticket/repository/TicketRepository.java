@@ -8,6 +8,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
+    Page<Ticket> findByClientId(UUID clientId, Pageable pageable);
+
+    Page<Ticket> findByClientIdAndTitleContainingIgnoreCaseOrClientIdAndDescriptionContainingIgnoreCase(
+            UUID clientIdTitle,
+            String title,
+            UUID clientIdDescription,
+            String description,
+            Pageable pageable
+    );
+
     Page<Ticket> findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
             String title,
             String description,

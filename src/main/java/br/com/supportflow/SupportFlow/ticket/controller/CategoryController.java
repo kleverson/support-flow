@@ -1,43 +1,47 @@
 package br.com.supportflow.SupportFlow.ticket.controller;
 
+import br.com.supportflow.SupportFlow.ticket.dto.CategoryCreateBody;
 import br.com.supportflow.SupportFlow.ticket.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "Category",description = "Endpoints for managing categories")
+@Tag(name = "Category", description = "Endpoints for managing categories")
 @RestController
 @RequestMapping("/api/v1/categories")
 public class CategoryController {
-
     private final CategoryService categoryService;
 
-    public CategoryController(CategoryService categoryService){
+    public CategoryController(CategoryService categoryService) {
         this.categoryService = categoryService;
     }
 
-
-    @Operation(summary = "Get all categories", description = "Returns a paginated list of categories, optionally filtered by a search term.")
+    @Operation(summary = "List categories by scope", description = "Scope: global, client or all. For client/all send X-Client-Id.")
     @GetMapping
-    public ResponseEntity<?> getAll(
-            @RequestParam(value="term", defaultValue = "") String term,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size
-    ){
-        return ResponseEntity.ok("Get all categories");
+    public ResponseEntity<?> listByScope(
+            @RequestParam(value = "scope", defaultValue = "all") String scope,
+            @RequestHeader(value = "X-Client-Id", required = false) String clientId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(categoryService.listByScope(scope, clientId, authentication));
     }
 
-    @Operation(summary = "List all categories", description = "Returns a list of all categories without pagination.")
-    @GetMapping("/list")
-    public ResponseEntity<?> listAll(){
-        return ResponseEntity.ok(categoryService.listAll());
-    }
-
-    @Operation(summary = "Create a new category", description = "Creates a new category with the provided details.")
+    @Operation(summary = "Create category", description = "Create global category (admin only) or client category (requires X-Client-Id).")
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody String categoryDetails) {
-        return ResponseEntity.ok("Create a new category");
+    public ResponseEntity<?> create(
+            @Valid @RequestBody CategoryCreateBody body,
+            @RequestHeader(value = "X-Client-Id", required = false) String clientId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(categoryService.create(body, clientId, authentication));
     }
-
 }
