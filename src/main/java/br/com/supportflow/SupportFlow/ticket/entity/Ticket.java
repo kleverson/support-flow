@@ -1,6 +1,8 @@
 package br.com.supportflow.SupportFlow.ticket.entity;
 
 import br.com.supportflow.SupportFlow.client.entity.Client;
+import br.com.supportflow.SupportFlow.ticket.entity.enums.TicketPriority;
+import br.com.supportflow.SupportFlow.ticket.entity.enums.TicketStatus;
 import br.com.supportflow.SupportFlow.user.entity.User;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;

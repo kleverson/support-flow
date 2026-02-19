@@ -3,15 +3,18 @@ package br.com.supportflow.SupportFlow.ticket.service;
 import br.com.supportflow.SupportFlow.client.repository.ClientRepository;
 import br.com.supportflow.SupportFlow.common.dto.GenericResponse;
 import br.com.supportflow.SupportFlow.common.exception.BusinessException;
+import br.com.supportflow.SupportFlow.common.util.StorageFile;
 import br.com.supportflow.SupportFlow.ticket.dto.TicketAssign;
 import br.com.supportflow.SupportFlow.ticket.dto.TicketPostBody;
-import br.com.supportflow.SupportFlow.ticket.dto.TicketPutBody;
 import br.com.supportflow.SupportFlow.ticket.dto.TicketResponse;
+import br.com.supportflow.SupportFlow.ticket.entity.Attachment;
 import br.com.supportflow.SupportFlow.ticket.entity.Category;
 import br.com.supportflow.SupportFlow.ticket.entity.Ticket;
-import br.com.supportflow.SupportFlow.ticket.entity.TicketPriority;
-import br.com.supportflow.SupportFlow.ticket.entity.TicketStatus;
+import br.com.supportflow.SupportFlow.ticket.entity.enums.AttachmentOwnerType;
+import br.com.supportflow.SupportFlow.ticket.entity.enums.TicketPriority;
+import br.com.supportflow.SupportFlow.ticket.entity.enums.TicketStatus;
 import br.com.supportflow.SupportFlow.ticket.mapper.TicketMapper;
+import br.com.supportflow.SupportFlow.ticket.repository.AttachmentRepository;
 import br.com.supportflow.SupportFlow.ticket.repository.CategoryRepository;
 import br.com.supportflow.SupportFlow.ticket.repository.TicketRepository;
 import br.com.supportflow.SupportFlow.user.repository.UserRepository;
@@ -20,7 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,7 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 @Service
 public class TicketService {
@@ -38,16 +42,21 @@ public class TicketService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
 
+    private final AttachmentRepository attachmentRepository;
+    private final StorageFile storageFile;
+
     public TicketService(
             TicketRepository ticketRepository,
             ClientRepository clientRepository,
             CategoryRepository categoryRepository,
-            UserRepository userRepository
-    ) {
+            UserRepository userRepository,
+            AttachmentRepository attachmentRepository, StorageFile storageFile) {
         this.ticketRepository = ticketRepository;
         this.clientRepository = clientRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
+        this.attachmentRepository = attachmentRepository;
+        this.storageFile = storageFile;
     }
 
     @Transactional(readOnly = true)
@@ -63,7 +72,13 @@ public class TicketService {
                 pageable
         );
 
-        return tickets.map(TicketMapper::toTicketResponse);
+        return tickets.map(item -> {
+            var attachments = attachmentRepository.findByOwnerIdAndOwnerType(item.getId(), AttachmentOwnerType.TICKET);
+
+            return TicketMapper.toTicketResponse(item, attachments);
+
+
+        });
     }
 
     @Transactional
@@ -81,11 +96,12 @@ public class TicketService {
 
         ticketRepository.save(ticket);
 
-        return TicketMapper.toTicketResponse(ticket);
+        var attachments = attachmentRepository.findByOwnerIdAndOwnerType(ticket.getId(), AttachmentOwnerType.TICKET);
+        return TicketMapper.toTicketResponse(ticket, attachments);
     }
 
     @Transactional
-    public GenericResponse create(TicketPostBody body, UserDetails userDetails) {
+    public GenericResponse create(TicketPostBody body, Authentication userDetails) {
         Ticket ticket = new Ticket();
         ticket.setTitle(body.title());
         ticket.setDescription(body.description());
@@ -95,14 +111,34 @@ public class TicketService {
         ticket.setClient(clientRepository.findById(body.clientId())
                 .orElseThrow(() -> new BusinessException("CLIENT_NOT_FOUND", "Client not found", HttpStatus.NOT_FOUND)));
 
-        if (userDetails == null || userDetails.getUsername() == null || userDetails.getUsername().isBlank()) {
-            throw new BusinessException("UNAUTHORIZED", "User not authenticated", HttpStatus.UNAUTHORIZED);
-        }
 
-        ticket.setRequester(userRepository.findByEmail(userDetails.getUsername())
+        ticket.setRequester(userRepository.findByEmail(userDetails.getName())
                 .orElseThrow(() -> new BusinessException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND)));
 
+
         ticketRepository.save(ticket);
+
+        List<String> files = body.files() == null ? List.of() : body.files();
+        if(!files.isEmpty()){
+            files.forEach(item -> {
+                String contentType = resolveContentType(item);
+                long sizeBytes = storageFile.decodeBase64(item).length;
+                var file = storageFile.uploadFile(item, "tickets/" + ticket.getId() + "/", contentType);
+
+                var attachment = new Attachment();
+                attachment.setOwnerId(ticket.getId());
+                attachment.setOwnerType(AttachmentOwnerType.TICKET);
+                attachment.setStoragePath(file);
+                attachment.setContentType(contentType);
+                attachment.setSizeBytes(sizeBytes);
+                attachment.setFileName(resolveFileName(file));
+
+                attachmentRepository.save(attachment);
+
+
+            });
+        }
+
         return new GenericResponse("Ticket created successfully!");
     }
 
@@ -162,5 +198,30 @@ public class TicketService {
         } catch (RuntimeException ex) {
             throw new BusinessException("INVALID_PRIORITY", "Invalid priority value", HttpStatus.BAD_REQUEST);
         }
+    }
+
+    private String resolveContentType(String base64) {
+        if (base64 == null || base64.isBlank()) {
+            throw new BusinessException("INVALID_FILE", "File payload is empty", HttpStatus.BAD_REQUEST);
+        }
+        if (base64.startsWith("data:")) {
+            int start = "data:".length();
+            int end = base64.indexOf(';');
+            if (end > start) {
+                return base64.substring(start, end);
+            }
+        }
+        return "application/octet-stream";
+    }
+
+    private String resolveFileName(String storagePath) {
+        if (storagePath == null || storagePath.isBlank()) {
+            return UUID.randomUUID().toString();
+        }
+        int idx = storagePath.lastIndexOf('/');
+        if (idx < 0 || idx == storagePath.length() - 1) {
+            return UUID.randomUUID().toString();
+        }
+        return storagePath.substring(idx + 1);
     }
 }

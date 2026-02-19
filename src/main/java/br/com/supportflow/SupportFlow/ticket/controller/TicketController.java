@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,9 +49,9 @@ public class TicketController {
     @PostMapping
     public ResponseEntity<?> create(
             @Valid @RequestBody TicketPostBody ticketPostBody,
-            @AuthenticationPrincipal UserDetails userDetails
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(ticketService.create(ticketPostBody, userDetails));
+        return ResponseEntity.ok(ticketService.create(ticketPostBody, authentication));
     }
 
     @Operation(summary = "Update ticket", description = "Updates an OPEN ticket.")

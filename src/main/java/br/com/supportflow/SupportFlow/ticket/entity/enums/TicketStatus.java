@@ -1,4 +1,4 @@
-package br.com.supportflow.SupportFlow.ticket.entity;
+package br.com.supportflow.SupportFlow.ticket.entity.enums;
 
 public enum TicketStatus {
     OPEN,

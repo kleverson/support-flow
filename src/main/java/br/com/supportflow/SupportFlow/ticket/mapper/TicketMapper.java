@@ -1,9 +1,11 @@
 package br.com.supportflow.SupportFlow.ticket.mapper;
 
+import br.com.supportflow.SupportFlow.ticket.dto.AttachmentResponse;
 import br.com.supportflow.SupportFlow.ticket.dto.CategoryResponse;
 import br.com.supportflow.SupportFlow.ticket.dto.CommentResponse;
 import br.com.supportflow.SupportFlow.ticket.dto.TicketResponse;
 import br.com.supportflow.SupportFlow.ticket.dto.UserSummaryResponse;
+import br.com.supportflow.SupportFlow.ticket.entity.Attachment;
 import br.com.supportflow.SupportFlow.ticket.entity.Category;
 import br.com.supportflow.SupportFlow.ticket.entity.Comment;
 import br.com.supportflow.SupportFlow.ticket.entity.Ticket;
@@ -15,7 +17,7 @@ public final class TicketMapper {
     private TicketMapper() {
     }
 
-    public static TicketResponse toTicketResponse(Ticket ticket) {
+    public static TicketResponse toTicketResponse(Ticket ticket, List<Attachment> files) {
         if (ticket == null) {
             return null;
         }
@@ -23,6 +25,10 @@ public final class TicketMapper {
         List<CommentResponse> comments = ticket.getComments() == null
                 ? List.of()
                 : ticket.getComments().stream().map(TicketMapper::toCommentResponse).toList();
+
+        List<AttachmentResponse> attachments = files == null
+                ? List.of()
+                : files.stream().map(TicketMapper::toAttachmentResponse).toList();
 
         return new TicketResponse(
                 ticket.getId(),
@@ -34,6 +40,7 @@ public final class TicketMapper {
                 toUserSummary(ticket.getRequester()),
                 toUserSummary(ticket.getAssigned()),
                 comments,
+                attachments,
                 ticket.getCreatedAt(),
                 ticket.getClosedAt(),
                 ticket.getUpdatedAt()
@@ -69,5 +76,20 @@ public final class TicketMapper {
         }
 
         return new UserSummaryResponse(user.getId(), user.getName(), user.getEmail());
+    }
+
+    public static AttachmentResponse toAttachmentResponse(Attachment attachment) {
+        if (attachment == null) {
+            return null;
+        }
+
+        return new AttachmentResponse(
+                attachment.getId(),
+                attachment.getFileName(),
+                attachment.getContentType(),
+                attachment.getSizeBytes(),
+                attachment.getStoragePath(),
+                attachment.getCreatedAt()
+        );
     }
 }

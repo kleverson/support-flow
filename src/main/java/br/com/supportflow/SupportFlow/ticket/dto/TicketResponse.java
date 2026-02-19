@@ -1,7 +1,7 @@
 package br.com.supportflow.SupportFlow.ticket.dto;
 
-import br.com.supportflow.SupportFlow.ticket.entity.TicketPriority;
-import br.com.supportflow.SupportFlow.ticket.entity.TicketStatus;
+import br.com.supportflow.SupportFlow.ticket.entity.enums.TicketPriority;
+import br.com.supportflow.SupportFlow.ticket.entity.enums.TicketStatus;
 
 import java.time.Instant;
 import java.util.List;
@@ -17,8 +17,10 @@ public record TicketResponse(
         UserSummaryResponse requester,
         UserSummaryResponse assigned,
         List<CommentResponse> comments,
+        List<AttachmentResponse> files,
         Instant createdAt,
         Instant closedAt,
         Instant updatedAt
+
 ) {
 }

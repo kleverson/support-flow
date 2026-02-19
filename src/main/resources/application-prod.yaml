@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: SupportFlow
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: ${JPA_SHOW_SQL:false}
+    open-in-view: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: false
+  redoc:
+    enabled: true
+    path: /redoc.html
+
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-exp-seconds: ${JWT_ACCESS_EXP_SECONDS:900}
+    refresh-exp-seconds: ${JWT_REFRESH_EXP_SECONDS:2592000}
+
+supabase:
+  url: ${SUPABASE_URL}
+  serviceKey: ${SUPABASE_BUCKET}
+  bucket: files

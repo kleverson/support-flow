@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex) {
-        ApiError body = new ApiError("INTERNAL_SERVER_ERROR", "Erro interno inesperado");
+        ApiError body = new ApiError("INTERNAL_SERVER_ERROR", !ex.getMessage().isEmpty() ? ex.getMessage().toString() : "Unexpected error occurred");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
